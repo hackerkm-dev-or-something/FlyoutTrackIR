@@ -1,27 +1,38 @@
 ﻿using UnityEngine;
-using UnityEngine.InputSystem;
 using MelonLoader;
 using NaturalPoint.TrackIR;
 using System.Collections;
+using Harmony;
+using Il2Cpp;
 using Il2CppInterop.Runtime.Injection;
+using GameObject = UnityEngine.GameObject;
 
-[assembly: MelonInfo(typeof(FlyoutTrackIR.Core), "FlyoutTrackIR", "1.0.0", "HerrTom", null)]
+[assembly: MelonInfo(typeof(FlyoutTrackIR.Core), "FlyoutTrackIR", "1.2.0", "HerrTom, Hackerkm", null)]
 [assembly: MelonGame("Stonext Games", "Flyout")]
 
 namespace FlyoutTrackIR
 {
     public class Core : MelonMod
     {
+        public static GameObject mainCamera;
+        public static GameObject trackIRgameObject;
+
         public override void OnInitializeMelon()
         {
             ClassInjector.RegisterTypeInIl2Cpp<TrackIRComponent>();
             MelonLogger.Msg("Initialized FlyoutTrackIR.");
         }
+
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
-            if (sceneName == "PlanetScene2") { MelonCoroutines.Start(WaitForGameObjects()); }
+            if (sceneName == "PlanetScene2")
+            {
+                MelonCoroutines.Start(WaitForGameObjects());
+            }
+
             base.OnSceneWasLoaded(buildIndex, sceneName);
         }
+        
         private IEnumerator WaitForGameObjects()
         {
             Il2Cpp.Craft craft = null;
@@ -35,27 +46,42 @@ namespace FlyoutTrackIR
                     yield return null;
             }
             // Once the object is found, execute main function
+
+            // just making the track ir rig here
+            trackIRgameObject = new GameObject("Track IR Rig");
+            trackIRgameObject.transform.parent = craft.transform.Find("_gfx/CamRig");
+            
             CreateTrackIRCamera();
         }
         public void CreateTrackIRCamera()
         {
-            // Use Camera.main to get the active camera tagged as "MainCamera"
-            GameObject mainCamera = GameObject.FindWithTag("MainCamera");
+            mainCamera = GameObject.FindWithTag("MainCamera");
 
-            if (mainCamera == null)
+            if (trackIRgameObject == null)
             {
-                LoggerInstance.Error("Main camera not found.");
+                MelonLogger.Error("Main camera not found.");
                 return;
             }
-
-            // Add TrackIRComponent to the camera
-            TrackIRComponent trackIRComponent = mainCamera.gameObject.AddComponent<TrackIRComponent>();
+            
+            // Add TrackIRComponent to the trackir camera rig
+            TrackIRComponent trackIRComponent = trackIRgameObject.gameObject.AddComponent<TrackIRComponent>();
             MelonLogger.Msg("Added TrackIRComponent to main camera!");
 
             // Set properties
             // trackIRComponent.AssignedApplicationId = 1000;
             // trackIRComponent.TrackingLostTimeoutSeconds = 3.0f;
             // trackIRComponent.TrackingLostRecenterDurationSeconds = 1.0f;
+        }
+        
+        // pretty much my only major change; Just a simple presence check & making sure the parent exists 
+        [HarmonyLib.HarmonyPatch(typeof(CameraController), nameof(CameraController.SetCockpitView))]
+        class ChangeParentCockpitPatch
+        {
+            public static void Postfix()
+            {
+                if (!trackIRgameObject || !mainCamera) return;
+                mainCamera.transform.parent = trackIRgameObject.transform;
+            }
         }
     }
 }
