@@ -7,7 +7,7 @@ using Il2Cpp;
 using Il2CppInterop.Runtime.Injection;
 using GameObject = UnityEngine.GameObject;
 
-[assembly: MelonInfo(typeof(FlyoutTrackIR.Core), "FlyoutTrackIR", "1.2.0", "HerrTom, Hackerkm", null)]
+[assembly: MelonInfo(typeof(FlyoutTrackIR.Core), "FlyoutTrackIR", "1.2.1", "HerrTom, Hackerkm", null)]
 [assembly: MelonGame("Stonext Games", "Flyout")]
 
 namespace FlyoutTrackIR
@@ -48,7 +48,7 @@ namespace FlyoutTrackIR
             // Once the object is found, execute main function
 
             // just making the track ir rig here
-            trackIRgameObject = new GameObject("Track IR Rig");
+            trackIRgameObject = new GameObject("World Camera"); // same name as camera just so existing LAMP scripts that change position of the camera work out of the box with this!
             trackIRgameObject.transform.parent = craft.transform.Find("_gfx/CamRig");
             
             CreateTrackIRCamera();
